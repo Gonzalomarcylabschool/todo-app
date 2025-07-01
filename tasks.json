@@ -2,26 +2,92 @@
   {
     "id": 1,
     "task": "Set up Django backend with JWT auth",
-    "status": "in-progress"
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Implemented with SimpleJWT, added refresh token support"
   },
   {
     "id": 2,
     "task": "Refactor React frontend to use API adapter",
-    "status": "done"
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Fixed TypeScript imports, removed @ts-ignore"
   },
   {
     "id": 3,
     "task": "Implement user login and registration UI",
-    "status": "todo"
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Added toggle between login/register, improved UX"
   },
   {
     "id": 4,
     "task": "Connect frontend to backend with JWT",
-    "status": "todo"
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Implemented automatic token refresh, proper error handling"
   },
   {
     "id": 5,
     "task": "Write PRD and project rules",
-    "status": "done"
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Updated with all implemented features and fixes"
+  },
+  {
+    "id": 6,
+    "task": "Fix critical authentication issues",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Added rest_framework_simplejwt to INSTALLED_APPS"
+  },
+  {
+    "id": 7,
+    "task": "Resolve database configuration mismatch",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Changed from PostgreSQL to SQLite for development consistency"
+  },
+  {
+    "id": 8,
+    "task": "Fix frontend data fetching bug",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Added token dependency to useEffect, improved error handling"
+  },
+  {
+    "id": 9,
+    "task": "Fix API field mapping issues",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Implemented camelCase to snake_case transformation"
+  },
+  {
+    "id": 10,
+    "task": "Implement comprehensive error handling",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Replaced empty catch blocks with proper error logging and token refresh"
+  },
+  {
+    "id": 11,
+    "task": "Make API URLs configurable",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Added environment variable support for VITE_API_BASE_URL"
+  },
+  {
+    "id": 12,
+    "task": "Secure Django settings",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Environment-based secret key, restricted CORS origins"
+  },
+  {
+    "id": 13,
+    "task": "Update project documentation",
+    "status": "done",
+    "completedDate": "2025-07-01",
+    "notes": "Updated PRD, README, and rules to reflect all changes"
   }
 ] 

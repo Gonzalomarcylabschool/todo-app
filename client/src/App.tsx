@@ -46,7 +46,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// @ts-ignore
 import * as api from "./api/todoApi"
 import LoginForm from "@/components/LoginForm"
 
@@ -78,7 +77,8 @@ interface Filters {
 }
 
 export default function TodoDashboard() {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem("jwt_token"))
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("jwt_access_token"))
+  const [refreshTokenState, setRefreshTokenState] = useState<string | null>(() => localStorage.getItem("jwt_refresh_token"))
 
   const [todos, setTodos] = useState<Todo[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -108,34 +108,64 @@ export default function TodoDashboard() {
 
   useEffect(() => {
     async function fetchData() {
+      if (!token) return
       try {
         const [todosData, categoriesData] = await Promise.all([
-          api.getTodos(token!),
-          api.getCategories(token!),
+          api.getTodos(token),
+          api.getCategories(token),
         ])
         setTodos(todosData)
         setCategories(categoriesData)
       } catch (err: any) {
-        // handle error if needed
-      } finally {
-        // handle loading if needed
+        console.error('Failed to fetch data:', err)
+        if (err.message.includes('401') || err.message.includes('403')) {
+          const refreshed = await attemptTokenRefresh()
+          if (!refreshed) {
+            setToken(null)
+            setRefreshTokenState(null)
+          }
+        }
       }
     }
     fetchData()
-  }, [])
+  }, [token])
 
-  // Persist token to localStorage
+  // Persist tokens to localStorage
   useEffect(() => {
     if (token) {
-      localStorage.setItem("jwt_token", token)
+      localStorage.setItem("jwt_access_token", token)
     } else {
-      localStorage.removeItem("jwt_token")
+      localStorage.removeItem("jwt_access_token")
     }
   }, [token])
+
+  useEffect(() => {
+    if (refreshTokenState) {
+      localStorage.setItem("jwt_refresh_token", refreshTokenState)
+    } else {
+      localStorage.removeItem("jwt_refresh_token")
+    }
+  }, [refreshTokenState])
+
+  // Token refresh logic
+  const attemptTokenRefresh = async () => {
+    if (!refreshTokenState) return false
+    try {
+      const response = await api.refreshToken(refreshTokenState)
+      setToken(response.access)
+      return true
+    } catch (error) {
+      console.error('Token refresh failed:', error)
+      setToken(null)
+      setRefreshTokenState(null)
+      return false
+    }
+  }
 
   // Logout handler
   const handleLogout = () => {
     setToken(null)
+    setRefreshTokenState(null)
   }
 
   // Filter todos based on current filters and search
@@ -209,7 +239,10 @@ export default function TodoDashboard() {
       setNewTodo({ title: "", description: "", priority: "medium", dueDate: "", categoryId: "" })
       setIsCreateModalOpen(false)
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to create todo:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -223,7 +256,10 @@ export default function TodoDashboard() {
       setEditingTodo(null)
       setNewTodo({ title: "", description: "", priority: "medium", dueDate: "", categoryId: "" })
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to update todo:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -234,7 +270,10 @@ export default function TodoDashboard() {
       const updated = await api.updateTodo(id, { ...todo, completed: !todo.completed }, token!)
       setTodos(todos.map((t) => (t.id === id ? updated : t)))
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to toggle todo:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -244,7 +283,10 @@ export default function TodoDashboard() {
       setTodos(todos.filter((t) => t.id !== id))
       setSelectedTodos(selectedTodos.filter((selectedId) => selectedId !== id))
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to delete todo:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -268,7 +310,10 @@ export default function TodoDashboard() {
       }
       setSelectedTodos([])
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to perform bulk action:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -280,7 +325,10 @@ export default function TodoDashboard() {
       setNewCategory({ name: "", color: "#3b82f6" })
       setIsCategoryModalOpen(false)
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to create category:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -292,7 +340,10 @@ export default function TodoDashboard() {
       setEditingCategory(null)
       setNewCategory({ name: "", color: "#3b82f6" })
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to update category:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -302,7 +353,10 @@ export default function TodoDashboard() {
       setCategories(categories.filter((cat) => cat.id !== id))
       setTodos(todos.map((todo) => (todo.category === id ? { ...todo, category: null } : todo)))
     } catch (err: any) {
-      // handle error if needed
+      console.error('Failed to delete category:', err)
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setToken(null)
+      }
     }
   }
 
@@ -368,9 +422,9 @@ export default function TodoDashboard() {
   if (!token) {
     return (
       <LoginForm
-        onLogin={(token: string) => {
-          setToken(token)
-          localStorage.setItem("jwt_token", token)
+        onLogin={(accessToken: string, refreshToken: string) => {
+          setToken(accessToken)
+          setRefreshTokenState(refreshToken)
         }}
       />
     )
