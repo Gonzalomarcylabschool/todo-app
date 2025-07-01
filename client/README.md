@@ -1,69 +1,60 @@
-# React + TypeScript + Vite
+# Todo App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, full-featured todo app built with React, TypeScript, Vite, Tailwind CSS v3, and shadcn/ui.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React** (with TypeScript)
+- **Vite** (for fast dev/build)
+- **Tailwind CSS v3** (utility-first styling)
+- **shadcn/ui** (accessible, composable UI components)
+- **Radix UI** (for accessible primitives)
+- **lucide-react** (icon set)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Project Rules
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Use TypeScript for all code.**
+2. **Use shadcn/ui and Tailwind for all UI.**  
+   No custom CSS unless absolutely necessary.
+3. **Keep components modular and composable.**
+4. **Write clear, descriptive commit messages.**
+5. **Document new features and breaking changes in the README.**
+6. **Lint and format code before pushing.**
+7. **No direct changes to `main` without review (if collaborating).**
+8. **Keep dependencies up to date, but do not upgrade Tailwind to v4+ until shadcn/ui and Vite fully support it.**
+9. **Use Node.js v20 for best compatibility.**
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Getting Started
+
+```sh
+# Install dependencies
+cd client
+npm install
+
+# Start the dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Visit [http://localhost:5173](http://localhost:5173) in your browser.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Known Issues
+
+- **Tailwind v4 is not supported.**  
+  This project uses Tailwind v3 for compatibility with shadcn/ui and Vite.
+- **Node.js v20 is recommended.**  
+  Newer Node versions may cause issues with Vite or Tailwind.
+
+---
+
+## Features
+
+- Add, edit, delete, and filter todos
+- Categorize todos
+- Bulk actions
+- Responsive, accessible UI
