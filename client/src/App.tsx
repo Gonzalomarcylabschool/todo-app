@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   Plus,
   Search,
@@ -46,23 +46,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// @ts-ignore
+import * as api from "./api/todoApi"
+import LoginForm from "@/components/LoginForm"
 
 // Types
 interface Todo {
-  id: string
+  id: number
   title: string
   description: string
   completed: boolean
   priority: "low" | "medium" | "high"
-  dueDate: string
-  categoryId: string
-  createdAt: string
+  due_date: string
+  category: number | null
+  user: number
+  created_at: string
 }
 
 interface Category {
-  id: string
+  id: number
   name: string
   color: string
+  user: number
 }
 
 interface Filters {
@@ -72,60 +77,11 @@ interface Filters {
   dueDateRange: "all" | "today" | "week" | "month" | "overdue"
 }
 
-// Sample data
-const initialCategories: Category[] = [
-  { id: "1", name: "Work", color: "#3b82f6" },
-  { id: "2", name: "Personal", color: "#10b981" },
-  { id: "3", name: "Shopping", color: "#f59e0b" },
-  { id: "4", name: "Health", color: "#ef4444" },
-]
-
-const initialTodos: Todo[] = [
-  {
-    id: "1",
-    title: "Complete project proposal",
-    description: "Finish the Q4 project proposal and send it to the team for review",
-    completed: false,
-    priority: "high",
-    dueDate: "2024-01-15",
-    categoryId: "1",
-    createdAt: "2024-01-10",
-  },
-  {
-    id: "2",
-    title: "Buy groceries",
-    description: "Get milk, bread, eggs, and vegetables for the week",
-    completed: true,
-    priority: "medium",
-    dueDate: "2024-01-12",
-    categoryId: "3",
-    createdAt: "2024-01-11",
-  },
-  {
-    id: "3",
-    title: "Schedule dentist appointment",
-    description: "Call Dr. Smith's office to schedule routine cleaning",
-    completed: false,
-    priority: "low",
-    dueDate: "2024-01-20",
-    categoryId: "4",
-    createdAt: "2024-01-09",
-  },
-  {
-    id: "4",
-    title: "Review code changes",
-    description: "Review the pull requests from the development team",
-    completed: false,
-    priority: "high",
-    dueDate: "2024-01-08",
-    categoryId: "1",
-    createdAt: "2024-01-08",
-  },
-]
-
 export default function TodoDashboard() {
-  const [todos, setTodos] = useState<Todo[]>(initialTodos)
-  const [categories, setCategories] = useState<Category[]>(initialCategories)
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("jwt_token"))
+
+  const [todos, setTodos] = useState<Todo[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [filters, setFilters] = useState<Filters>({
     status: "all",
     priority: "all",
@@ -133,7 +89,7 @@ export default function TodoDashboard() {
     dueDateRange: "all",
   })
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedTodos, setSelectedTodos] = useState<string[]>([])
+  const [selectedTodos, setSelectedTodos] = useState<number[]>([])
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
@@ -149,6 +105,38 @@ export default function TodoDashboard() {
     name: "",
     color: "#3b82f6",
   })
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [todosData, categoriesData] = await Promise.all([
+          api.getTodos(token!),
+          api.getCategories(token!),
+        ])
+        setTodos(todosData)
+        setCategories(categoriesData)
+      } catch (err: any) {
+        // handle error if needed
+      } finally {
+        // handle loading if needed
+      }
+    }
+    fetchData()
+  }, [])
+
+  // Persist token to localStorage
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("jwt_token", token)
+    } else {
+      localStorage.removeItem("jwt_token")
+    }
+  }, [token])
+
+  // Logout handler
+  const handleLogout = () => {
+    setToken(null)
+  }
 
   // Filter todos based on current filters and search
   const filteredTodos = useMemo(() => {
@@ -170,12 +158,12 @@ export default function TodoDashboard() {
       if (filters.priority !== "all" && todo.priority !== filters.priority) return false
 
       // Category filter
-      if (filters.category !== "all" && todo.categoryId !== filters.category) return false
+      if (filters.category !== "all" && todo.category !== parseInt(filters.category)) return false
 
       // Due date filter
       if (filters.dueDateRange !== "all") {
         const today = new Date()
-        const dueDate = new Date(todo.dueDate)
+        const dueDate = new Date(todo.due_date)
 
         switch (filters.dueDateRange) {
           case "today":
@@ -204,89 +192,118 @@ export default function TodoDashboard() {
     const total = todos.length
     const completed = todos.filter((t) => t.completed).length
     const pending = total - completed
-    const overdue = todos.filter((t) => !t.completed && new Date(t.dueDate) < new Date()).length
+    const overdue = todos.filter((t) => !t.completed && new Date(t.due_date) < new Date()).length
 
     return { total, completed, pending, overdue }
   }, [todos])
 
   // Handlers
-  const handleCreateTodo = () => {
+  const handleCreateTodo = async () => {
     if (!newTodo.title.trim()) return
-
-    const todo: Todo = {
-      id: Date.now().toString(),
-      title: newTodo.title,
-      description: newTodo.description,
-      completed: false,
-      priority: newTodo.priority,
-      dueDate: newTodo.dueDate,
-      categoryId: newTodo.categoryId,
-      createdAt: new Date().toISOString(),
+    try {
+      const created = await api.createTodo({
+        ...newTodo,
+        completed: false,
+      }, token!)
+      setTodos([...todos, created])
+      setNewTodo({ title: "", description: "", priority: "medium", dueDate: "", categoryId: "" })
+      setIsCreateModalOpen(false)
+    } catch (err: any) {
+      // handle error if needed
     }
-
-    setTodos([...todos, todo])
-    setNewTodo({ title: "", description: "", priority: "medium", dueDate: "", categoryId: "" })
-    setIsCreateModalOpen(false)
   }
 
-  const handleUpdateTodo = () => {
+  const handleUpdateTodo = async () => {
     if (!editingTodo || !newTodo.title.trim()) return
-
-    setTodos(todos.map((todo) => (todo.id === editingTodo.id ? { ...todo, ...newTodo } : todo)))
-    setEditingTodo(null)
-    setNewTodo({ title: "", description: "", priority: "medium", dueDate: "", categoryId: "" })
-  }
-
-  const handleToggleTodo = (id: string) => {
-    setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)))
-  }
-
-  const handleDeleteTodo = (id: string) => {
-    setTodos(todos.filter((todo) => todo.id !== id))
-    setSelectedTodos(selectedTodos.filter((selectedId) => selectedId !== id))
-  }
-
-  const handleBulkAction = (action: "complete" | "delete" | "category", value?: string) => {
-    if (action === "complete") {
-      setTodos(todos.map((todo) => (selectedTodos.includes(todo.id) ? { ...todo, completed: true } : todo)))
-    } else if (action === "delete") {
-      setTodos(todos.filter((todo) => !selectedTodos.includes(todo.id)))
-    } else if (action === "category" && value) {
-      setTodos(todos.map((todo) => (selectedTodos.includes(todo.id) ? { ...todo, categoryId: value } : todo)))
+    try {
+      const updated = await api.updateTodo(editingTodo.id, {
+        ...newTodo,
+      }, token!)
+      setTodos(todos.map((todo) => (todo.id === editingTodo.id ? updated : todo)))
+      setEditingTodo(null)
+      setNewTodo({ title: "", description: "", priority: "medium", dueDate: "", categoryId: "" })
+    } catch (err: any) {
+      // handle error if needed
     }
-    setSelectedTodos([])
   }
 
-  const handleCreateCategory = () => {
+  const handleToggleTodo = async (id: number) => {
+    const todo = todos.find((t) => t.id === id)
+    if (!todo) return
+    try {
+      const updated = await api.updateTodo(id, { ...todo, completed: !todo.completed }, token!)
+      setTodos(todos.map((t) => (t.id === id ? updated : t)))
+    } catch (err: any) {
+      // handle error if needed
+    }
+  }
+
+  const handleDeleteTodo = async (id: number) => {
+    try {
+      await api.deleteTodo(id, token!)
+      setTodos(todos.filter((t) => t.id !== id))
+      setSelectedTodos(selectedTodos.filter((selectedId) => selectedId !== id))
+    } catch (err: any) {
+      // handle error if needed
+    }
+  }
+
+  const handleBulkAction = async (action: "complete" | "delete" | "category", value?: number) => {
+    try {
+      if (action === "complete") {
+        await Promise.all(selectedTodos.map(id => {
+          const todo = todos.find(t => t.id === id)
+          if (todo && !todo.completed) return api.updateTodo(id, { ...todo, completed: true }, token!)
+        }))
+        setTodos(todos.map((todo) => (selectedTodos.includes(todo.id) ? { ...todo, completed: true } : todo)))
+      } else if (action === "delete") {
+        await Promise.all(selectedTodos.map(id => api.deleteTodo(id, token!)))
+        setTodos(todos.filter((todo) => !selectedTodos.includes(todo.id)))
+      } else if (action === "category" && value) {
+        await Promise.all(selectedTodos.map(id => {
+          const todo = todos.find(t => t.id === id)
+          if (todo) return api.updateTodo(id, { ...todo, category: value }, token!)
+        }))
+        setTodos(todos.map((todo) => (selectedTodos.includes(todo.id) ? { ...todo, category: value } : todo)))
+      }
+      setSelectedTodos([])
+    } catch (err: any) {
+      // handle error if needed
+    }
+  }
+
+  const handleCreateCategory = async () => {
     if (!newCategory.name.trim()) return
-
-    const category: Category = {
-      id: Date.now().toString(),
-      name: newCategory.name,
-      color: newCategory.color,
+    try {
+      const created = await api.createCategory(newCategory, token!)
+      setCategories([...categories, created])
+      setNewCategory({ name: "", color: "#3b82f6" })
+      setIsCategoryModalOpen(false)
+    } catch (err: any) {
+      // handle error if needed
     }
-
-    setCategories([...categories, category])
-    setNewCategory({ name: "", color: "#3b82f6" })
-    setIsCategoryModalOpen(false)
   }
 
-  const handleUpdateCategory = () => {
+  const handleUpdateCategory = async () => {
     if (!editingCategory || !newCategory.name.trim()) return
-
-    setCategories(
-      categories.map((cat) =>
-        cat.id === editingCategory.id ? { ...cat, name: newCategory.name, color: newCategory.color } : cat,
-      ),
-    )
-    setEditingCategory(null)
-    setNewCategory({ name: "", color: "#3b82f6" })
+    try {
+      const updated = await api.updateCategory(editingCategory.id, newCategory, token!)
+      setCategories(categories.map((cat) => (cat.id === editingCategory.id ? updated : cat)))
+      setEditingCategory(null)
+      setNewCategory({ name: "", color: "#3b82f6" })
+    } catch (err: any) {
+      // handle error if needed
+    }
   }
 
-  const handleDeleteCategory = (id: string) => {
-    setCategories(categories.filter((cat) => cat.id !== id))
-    // Move todos from deleted category to uncategorized
-    setTodos(todos.map((todo) => (todo.categoryId === id ? { ...todo, categoryId: "" } : todo)))
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      await api.deleteCategory(id, token!)
+      setCategories(categories.filter((cat) => cat.id !== id))
+      setTodos(todos.map((todo) => (todo.category === id ? { ...todo, category: null } : todo)))
+    } catch (err: any) {
+      // handle error if needed
+    }
   }
 
   const openEditTodo = (todo: Todo) => {
@@ -295,8 +312,8 @@ export default function TodoDashboard() {
       title: todo.title,
       description: todo.description,
       priority: todo.priority as "low" | "medium" | "high",
-      dueDate: todo.dueDate,
-      categoryId: todo.categoryId,
+      dueDate: todo.due_date,
+      categoryId: todo.category ? todo.category.toString() : "",
     })
     setIsCreateModalOpen(true)
   }
@@ -347,6 +364,18 @@ export default function TodoDashboard() {
     })
   }
 
+  // If not authenticated, show login form
+  if (!token) {
+    return (
+      <LoginForm
+        onLogin={(token: string) => {
+          setToken(token)
+          localStorage.setItem("jwt_token", token)
+        }}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -395,7 +424,7 @@ export default function TodoDashboard() {
                   Notifications
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
@@ -563,9 +592,9 @@ export default function TodoDashboard() {
                   {categories.map((category) => (
                     <div key={category.id} className="flex items-center">
                       <button
-                        onClick={() => setFilters({ ...filters, category: category.id })}
+                        onClick={() => setFilters({ ...filters, category: category.id.toString() })}
                         className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                          filters.category === category.id
+                          filters.category === category.id.toString()
                             ? "bg-blue-50 text-blue-700 font-medium"
                             : "text-gray-600 hover:bg-gray-50"
                         }`}
@@ -615,13 +644,13 @@ export default function TodoDashboard() {
                       <Check className="h-4 w-4 mr-1" />
                       Mark Complete
                     </Button>
-                    <Select onValueChange={(value: string) => handleBulkAction("category", value)}>
+                    <Select onValueChange={(value: string) => handleBulkAction("category", parseInt(value))}>
                       <SelectTrigger className="w-40 h-8">
                         <SelectValue placeholder="Change Category" />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
+                          <SelectItem key={category.id} value={category.id.toString()}>
                             <div className="flex items-center">
                               <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: category.color }} />
                               {category.name}
@@ -667,8 +696,8 @@ export default function TodoDashboard() {
                 </div>
               ) : (
                 filteredTodos.map((todo) => {
-                  const category = categories.find((c) => c.id === todo.categoryId)
-                  const overdue = isOverdue(todo.dueDate, todo.completed)
+                  const category = categories.find((c) => c.id === todo.category)
+                  const overdue = isOverdue(todo.due_date, todo.completed)
 
                   return (
                     <Card
@@ -738,7 +767,7 @@ export default function TodoDashboard() {
                                     className={`border-0 ${overdue ? "bg-red-50 text-red-700" : "bg-gray-50"}`}
                                   >
                                     <CalendarDays className="h-3 w-3 mr-1" />
-                                    {formatDate(todo.dueDate)}
+                                    {formatDate(todo.due_date)}
                                     {overdue && " (Overdue)"}
                                   </Badge>
                                 </div>
@@ -860,7 +889,7 @@ export default function TodoDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
+                    <SelectItem key={category.id} value={category.id.toString()}>
                       <div className="flex items-center">
                         <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: category.color }} />
                         {category.name}

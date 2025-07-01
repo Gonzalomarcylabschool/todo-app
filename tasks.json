@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "task": "Set up Django backend with JWT auth",
+    "status": "in-progress"
+  },
+  {
+    "id": 2,
+    "task": "Refactor React frontend to use API adapter",
+    "status": "done"
+  },
+  {
+    "id": 3,
+    "task": "Implement user login and registration UI",
+    "status": "todo"
+  },
+  {
+    "id": 4,
+    "task": "Connect frontend to backend with JWT",
+    "status": "todo"
+  },
+  {
+    "id": 5,
+    "task": "Write PRD and project rules",
+    "status": "done"
+  }
+] 
