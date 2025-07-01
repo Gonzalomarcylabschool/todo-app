@@ -433,8 +433,8 @@ export default function TodoDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <CheckSquare className="h-8 w-8 text-blue-600" />
@@ -488,9 +488,9 @@ export default function TodoDashboard() {
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-73px)]">
+      <div className="max-w-7xl mx-auto flex h-[calc(100vh-73px)]">
         {/* Sidebar */}
-        <aside className="w-80 bg-white border-r border-gray-200 overflow-y-auto">
+        <aside className="hidden lg:block w-80 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-6">
             {/* Search */}
             <div className="relative mb-6">
@@ -684,8 +684,8 @@ export default function TodoDashboard() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="p-4 sm:p-6 w-full max-w-6xl mx-auto">
             {/* Bulk Actions */}
             {selectedTodos.length > 0 && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
